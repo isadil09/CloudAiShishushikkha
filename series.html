@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>বুক সিরিজ — শিশুশিক্ষা</title>
+<meta name="theme-color" content="#4bbbe1">
+<link rel="icon" href="lgfu.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Noto+Serif+Bengali:wght@600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="skip" href="#main">মূল অংশে যান</a>
+
+<header class="site-header">
+  <div class="wrap bar">
+    <a class="brand" href="index.html">
+      <img class="brand-logo" src="lgfu.png" alt="" width="46" height="46">
+      <span class="brand-text">
+        <strong>শিশুশিক্ষা ও অন্যান্য</strong>
+        <small>সেরা বইয়ের কালেকশন</small>
+      </span>
+    </a>
+    <a class="btn btn-messenger btn-sm" href="https://m.me/shishushikkha1" target="_blank" rel="noopener" aria-label="Messenger -এ মেসেজ দিন">
+      <i class="fab fa-facebook-messenger" aria-hidden="true"></i><span>মেসেজ দিন</span>
+    </a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero hero-sm">
+    <div class="wrap page-head">
+      <a href="index.html" class="back"><i class="fas fa-arrow-left" aria-hidden="true"></i> সকল সিরিজে ফিরে যান</a>
+      <span class="rule" aria-hidden="true"></span>
+      <h1 id="series-title">&nbsp;</h1>
+      <div class="stats" id="series-stats">
+        <button class="btn btn-light btn-sm" id="order-series" type="button" hidden>পুরো সিরিজ অর্ডার করুন</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap section" aria-label="বইয়ের তালিকা">
+    <div class="grid" id="books-grid"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap foot">
+    <a class="brand" href="index.html">
+      <img class="brand-logo" src="lgfu.png" alt="" width="42" height="42">
+      <span class="brand-text"><strong>শিশুশিক্ষা ও অন্যান্য</strong><small id="year"></small></span>
+    </a>
+    <a class="btn btn-messenger" href="https://m.me/shishushikkha1" target="_blank" rel="noopener">
+      <i class="fab fa-facebook-messenger" aria-hidden="true"></i> Messenger -এ কথা বলুন
+    </a>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+  // series.html?id=oxford
+  const seriesId = new URLSearchParams(window.location.search).get('id');
+  const series = seriesData.find((s) => s.id === seriesId);
+
+  if (!series) {
+    window.location.replace('index.html');
+  } else {
+    const seriesIndex = seriesData.indexOf(series);
+    const total = toBengaliNum(seriesTotal(series));
+    const count = toBengaliNum(series.books.length);
+
+    document.title = `${series.title} — শিশুশিক্ষা`;
+    document.getElementById('series-title').textContent = series.title;
+
+    // Meta chips + "order whole series"
+    const stats = document.getElementById('series-stats');
+    stats.insertAdjacentHTML('afterbegin', `
+      <div class="stat"><b>${count}</b><span>টি বই</span></div>
+      <div class="stat"><b>${total}৳</b><span>সব বই একসাথে</span></div>`);
+
+    const orderSeries = document.getElementById('order-series');
+    orderSeries.hidden = false;
+    orderSeries.addEventListener('click', () => {
+      openOrder({
+        kicker: 'সম্পূর্ণ সিরিজ',
+        title: series.title,
+        priceText: `সব বই একসাথে: ${total}৳`,
+        cover: coverMarkup('series', {
+          img: seriesRealCover(series),
+          title: series.title,
+          sub: `${count} টি বই`,
+          color: COVER_COLORS[seriesIndex % COVER_COLORS.length]
+        }),
+        message: `আমি "${series.title}" সিরিজের সব বই কিনতে চাই।`
+      });
+    });
+
+    // Books
+    const grid = document.getElementById('books-grid');
+    series.books.forEach((book, i) => {
+      const cover = () => coverMarkup('book', {
+        img: bookRealCover(book),
+        title: book.title,
+        sub: series.title,
+        color: COVER_COLORS[(seriesIndex + i) % COVER_COLORS.length]
+      });
+
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.style.setProperty('--i', i);
+      card.innerHTML = `
+        <button class="card-link" type="button" aria-label="${esc(book.title)} — ভিতরের পেজ ও অর্ডার">
+          ${cover()}
+          <div class="card-body">
+            <h3>${esc(book.title)}</h3>
+            <p class="price">${book.price}৳</p>
+            <span class="fake-btn">ভিতরের পেজ ও অর্ডার</span>
+          </div>
+        </button>`;
+
+      card.querySelector('.card-link').addEventListener('click', () => {
+        openOrder({
+          kicker: series.title,
+          title: book.title,
+          priceText: `মূল্য: ${book.price}৳`,
+          cover: cover(),
+          pages: book.pages || [],
+          message: `আমি "${series.title} - ${book.title}" বইটি কিনতে চাই।`
+        });
+      });
+
+      grid.appendChild(card);
+    });
+
+    document.getElementById('year').textContent = `© ${toBengaliNum(new Date().getFullYear())} শিশুশিক্ষা`;
+  }
+</script>
+</body>
+</html>
